@@ -33,14 +33,14 @@ def ad_unpack(file_path, destination = "out"):
 ######################################################
 
 # Step 1: Dump approm 'approm.o' ROMFS into './approm'
-unpack("approm.o", "approm")
-
+unpack("Flash.vwr", "viewer2.5flash")
+#unpack("EchoStar5420.o", "EchoStar5420")
 # Step 2: Edit or add files in dir './approm'.  Keep in mind the ROMFS size is limited.
 #	You can change dt.json "compression_strategy" to "best" to test lzss and lzpf to auto-choose the best compression per file.  See comments in unpack() from lin/romfs_explode.py for more details.
 
 # Step 3: Build approm 'approm-mod.o' based on the original approm 'approm.o' using files in ./approm
-#packd("./approm", "approm.o", "approm-mod.o")
-
+#packd("./viewer2.5flash", "Flash.vwr", "Flash-mod.vwr")
+#packd("./EchoStar5420", "EchoStar5420.o", "EchoStar5420-mod.o")
 # Step 4: install onto box.
 
 # This can be used for any build.

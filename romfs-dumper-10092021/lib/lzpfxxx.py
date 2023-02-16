@@ -5,6 +5,7 @@ class lzpf():
         "current_literal": 0,
         "current_length": 0,
         "compressed_data": None,
+        "filler_byte": 0x00,
         "ring_buffer": [],
         "flag_table": [],
     }
@@ -402,7 +403,7 @@ class lzpf():
             self.context["current_length"].value -= 8
             self.context["current_literal"].value <<= 8
 
-    def Lzpf_Compress(self, uncompressed_data, suffix = 0x20):
+    def Lzpf_Compress(self, uncompressed_data):
         uncompressed_len = len(uncompressed_data)
 
         i = 0
@@ -484,7 +485,7 @@ class lzpf():
         # End
         if self.context["current_length"].value != 0:
             self.context["compressed_data"].append(self.context["current_literal"].value >> 0x18)
-        self.context["compressed_data"].append(suffix)
+        self.context["compressed_data"].append(self.context["filler_byte"])
 
         return self.context["compressed_data"]
 

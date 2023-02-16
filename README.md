@@ -17,9 +17,9 @@ I take no credit for writing anything except the sample scripts for the old vers
 
 ## Versions
 
-- "romfs-dumper-02092021"
+- "romfs-dumper-10092021"
 
-This is the last version of the ROMFS dumper library released to the public, last modified on September 02, 2021. Contains under the hood improvements as well as the ability to pack ROMFS data directly back into WebTV/MSN TV firmware and extract "AutoDisk" data from applicable WebTV/MSN TV builds. Comes with a sample script written by eMac to give an idea of how the library works.
+This is the last version of the ROMFS dumper library released to the public, last modified on September 10, 2021. Contains under the hood improvements as well as the ability to pack ROMFS data directly back into WebTV/MSN TV firmware and extract "AutoDisk" data from applicable WebTV/MSN TV builds. Comes with a sample script written by eMac to give an idea of how the library works.
 
 - "OLD-romfs_lib_w_samples"
 
@@ -27,4 +27,4 @@ Older version of the ROMFS library last modified some time in early 2021. This w
 
 ## How to Use
 
-Simply take the ROMFS library you want to use ("romfs-dumper-02092021" is recommended), and import any code you want to use from it in your scripts from the lib folder. Reading the sample scripts will give you more insight on what you can do with this library.
+Simply take the ROMFS library you want to use ("romfs-dumper-10092021" is recommended), and import any code you want to use from it in your scripts from the lib folder. Reading the sample scripts will give you more insight on what you can do with this library.

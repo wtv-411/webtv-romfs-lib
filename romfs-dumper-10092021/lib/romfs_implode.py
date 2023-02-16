@@ -229,7 +229,7 @@ class romfs_implode():
 
                             try:
                                 c = lzpf()
-                                lzpf_data = c.Lzpf_Compress(data, 0x00)
+                                lzpf_data = c.Lzpf_Compress(data)
                                 lzpf_len = len(lzpf_data)
                             except:
                                 pass
@@ -262,7 +262,7 @@ class romfs_implode():
                                     
                             if compression_type == FILE_COMPRESSION.LZPF:
                                 c = lzpf()
-                                data = c.Lzpf_Compress(data, 0x00)
+                                data = c.Lzpf_Compress(data)
                             elif compression_type == FILE_COMPRESSION.LZSS:
                                 c = lzss()
                                 data = c.Lzss_Compress(data)
@@ -455,10 +455,6 @@ class romfs_implode():
             print("\tRebulding ROM file.")
 
             build_blob = code_section + code_romfs_padding + romfs_blob + footer_section
-
-            if len(build_blob) > 0x800000:
-                print("\t!! Build over 8MB.  May not work!")
-
 
             return build_blob
         else:

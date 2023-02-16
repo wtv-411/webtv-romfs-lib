@@ -2,7 +2,6 @@ import ctypes
 from enum import Enum
 import traceback
 import time
-#from cool import *
 
 class LZJ_VERSION(Enum):
     VERSION0 = 0x6C7A6A30 # lzj0
@@ -15,9 +14,9 @@ class lzj():
 
     def clear(self, version: LZJ_VERSION = LZJ_VERSION.VERSION1):
         self.BLOCK_SIZE = 0x100
-        self.MAX_MATCH_LENGTH = 0x05
+        self.MAX_MATCH_LENGTH = 0x108
         self.MIN_MATCH_LENGTH = 0x02
-        self.MATCH_START_OFFSET = 0x06
+        self.MATCH_START_OFFSET = 0x05
         self.MAX_LENGTH = 0x100 + 0x08
 
         self.version = version
@@ -51,6 +50,8 @@ class lzj():
         self.match_position = 0x00
 
         self.cool = 0
+        self.tree = []
+        self.root_only = False
 
     def IsGoodMatch(self, position_difference, matched_length):
         if matched_length == 0x02 and position_difference <= 0x100:
@@ -80,7 +81,7 @@ class lzj():
                 if uncompressed_end_index < self.uncompressed_length:
                     S = bytes(self.uncompressed_data[search_index:uncompressed_end_index])
 
-                    if uncompressed_end_index >= self.MATCH_START_OFFSET and self.match_position == -1:
+                    if search_index >= self.MATCH_START_OFFSET and self.match_position == -1:
                         if S in Sdictionary:
                             position_difference = self.uncompressed_index - Sdictionary[S]
                             if Sdictionary[S] < self.uncompressed_index and self.IsGoodMatch(position_difference, current_match_length):
@@ -106,12 +107,13 @@ class lzj():
                         else:
                             found_new_match = False
                             if True:
-                                for _index in Edictionary[matched_S][0:-1]:
-                                    if self.uncompressed_data[search_index:search_index + self.match_length + 1] == self.uncompressed_data[_index:_index + self.match_length + 1]:
-                                        self.match_position = _index
-                                        self.match_length += 1
-                                        found_new_match = True
-                                        break
+                                for _index in Edictionary[matched_S][-2::-1]:
+                                    if (search_index - _index) <= 0x911000:
+                                        if self.uncompressed_data[search_index:search_index + self.match_length + 1] == self.uncompressed_data[_index:_index + self.match_length + 1]:
+                                            self.match_position = _index
+                                            self.match_length += 1
+                                            found_new_match = True
+                                            break
 
                             if not found_new_match:
                                 break
@@ -121,7 +123,7 @@ class lzj():
                     if self.match_length == 0x09:
                         self.match_length = 0x08
 
-                if search_index == 0x17003:
+                if search_index == 0x83B3:
                     #print("self.match_length", hex(self.match_length), hex(search_index), Edictionary[matched_S])
                     #quit()
                     pass
@@ -182,7 +184,8 @@ class lzj():
                             self.match_length += 1
                         else:
                             found_new_match = False
-                            for _index in Edictionary[matched_S][0:-1]:
+                            for ii in range(len(Edictionary[matched_S]) - 2, 0, -1):
+                                _index = Edictionary[matched_S][ii]
                                 if self.uncompressed_data[search_index:search_index + self.match_length + 1] == self.uncompressed_data[_index:_index + self.match_length + 1]:
                                     self.match_position = _index
                                     self.match_length += 1
@@ -239,6 +242,76 @@ class lzj():
 
             if not encode(self.uncompressed_index) and self.match_position > 0:
                 self.cool -= 1
+        end()
+
+    def MixingModel5(self, encode, end, name, count = 0, cool_predefined = [], Sdictionary = {}, bestSize=[0xFFFFFFFF, 0, 0, 0], nested = 1):
+        cool_index = 0
+        search_index = 0
+        done_cool = False
+        while search_index < self.uncompressed_length:
+            if nested > 1 and not done_cool and cool_index < len(cool_predefined):
+                self.match_position = cool_predefined[cool_index][0]
+                self.match_length = cool_predefined[cool_index][1]
+                search_index = cool_predefined[cool_index][2]
+
+                encode(search_index)
+
+                search_index += 1
+                cool_index += 1
+            else:
+                done_cool = True
+                self.match_position = -1
+                self.match_length = 1
+                add_it = []
+
+                current_match_length = self.MAX_MATCH_LENGTH
+                while current_match_length >= self.MIN_MATCH_LENGTH:
+                    uncompressed_end_index = search_index + current_match_length
+                    if uncompressed_end_index < self.uncompressed_length:
+                        S = bytes(self.uncompressed_data[search_index:uncompressed_end_index])
+
+                        if search_index >= self.MATCH_START_OFFSET:
+                            if self.match_position == -1:
+                                if S in Sdictionary:
+                                    position_difference = self.uncompressed_index - Sdictionary[S]
+                                    if Sdictionary[S] < self.uncompressed_index and self.IsGoodMatch(position_difference, current_match_length):
+                                        self.match_position = Sdictionary[S]
+                                        self.match_length = current_match_length
+                            elif (not self.root_only or (nested == 1)):
+                                if S in Sdictionary:
+                                    position_difference = self.uncompressed_index - Sdictionary[S]
+                                    if Sdictionary[S] < self.uncompressed_index and self.IsGoodMatch(position_difference, current_match_length):
+                                        add_it.append([Sdictionary[S], current_match_length, search_index])
+                                
+
+                        Sdictionary[S] = search_index
+
+                    current_match_length -= 1
+
+                if search_index >= self.uncompressed_index:
+                    if (not self.root_only or (nested == 1)) and len(add_it) > 0:
+                        _cool_predefined = cool_predefined.copy()
+                        _cool_predefined.append([])
+                        for ii in add_it:
+                            _cool_predefined[len(_cool_predefined) - 1] = ii
+
+                            bestSize[1] += 1
+                            count = bestSize[1]
+                            
+                            if nested == 1:
+                                bestSize[2] = self.uncompressed_index
+
+                            lzj(self.version).Lzj_Compress2(self.uncompressed_data, name, count, _cool_predefined, Sdictionary, bestSize, (nested + 1))
+
+                        add_it = []
+
+                    cool_predefined.append([self.match_position, self.match_length, search_index])
+
+                    encode(search_index)
+
+
+                search_index += 1
+
         end()
 
     def AddPendingByte(self, byte):
@@ -463,13 +536,37 @@ class lzj():
 
             self.uncompressed_index += self.match_length
 
-            return True
-        else:
-            return False
-
     def End(self):
         if self.flag_bit_index > 0:
             self.WriteFlagBit(0x00, (0x08 - self.flag_bit_index))
+
+    def Lzj_Compress2(self, uncompressed_data, name, count = 0, cool_predefined = [], Sdictionary = {}, bestSize=[0xFFFFFFFF, 0, 0, 0], nested = 1):
+        if nested > 50:
+            return
+
+        _cool_predefined = cool_predefined.copy()
+        _Sdictionary = Sdictionary.copy()
+
+        self.uncompressed_data = bytearray(uncompressed_data)
+        self.uncompressed_length = len(uncompressed_data)
+
+        self.compressed_data.extend(self.uncompressed_length.to_bytes(4, "little"))
+        self.compressed_index += 4
+
+        self.MixingModel5(self.Encode, self.End, name, count, _cool_predefined, _Sdictionary, bestSize, nested)
+
+        bestSize[3] += 1
+        if bestSize[3] == 10:
+            print(len(self.compressed_data)," < ",bestSize[0], "|", bestSize[1], "|", hex(bestSize[2]))
+            bestSize[3] = 0
+
+        if len(self.compressed_data) < bestSize[0]:
+            file = "coolY2/" + name + str(count) + ".bin"
+            open(file, "wb").write(self.compressed_data)
+            print("WRITE", file, len(self.compressed_data))
+            bestSize[0] = len(self.compressed_data)
+            open("coolY2/yoot.bin", "wb").write(self.compressed_data)
+
 
     def Lzj_Compress(self, uncompressed_data):
         self.uncompressed_data = uncompressed_data
@@ -565,6 +662,24 @@ class lzj():
             self.match_length -= 1
 
         return True
+
+    def Lzj_ExpandX(self, compressed_data1, compressed_data2):
+        self.Lzj_Expand(compressed_data1)
+        _cool1 = self.cool.copy()
+
+        self.clear()
+        self.Lzj_Expand(compressed_data2)
+
+        ii = 0
+        cnt = 0
+        while ii < len(self.cool):
+            if _cool1[ii][1] != self.cool[ii][1]:
+                if _cool1[ii][2] == self.cool[ii][2]:
+                    print(ii, "::", _cool1[ii-1], self.cool[ii-1], "|>", _cool1[ii], self.cool[ii], "<|", _cool1[ii+1], self.cool[ii+1])
+                else:
+                    print(ii, "!:", _cool1[ii-1], self.cool[ii-1], "|>", _cool1[ii], self.cool[ii], "<|", _cool1[ii+1], self.cool[ii+1])
+
+            ii += 1
 
     def Lzj_Expand(self, compressed_data):
         self.compressed_data = compressed_data

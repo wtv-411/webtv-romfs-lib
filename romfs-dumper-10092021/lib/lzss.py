@@ -5,7 +5,7 @@ class lzss():
         "ring_buffer_size": 0x1000,
         "root_index": 0x1000,
         "max_match_length": 0x12,
-        "match_threshold": 0x02,
+        "match_threshold": 0x03,
         "match_position": 0x00,
         "match_length": 0x00,
         "ring_buffer": [],
@@ -23,7 +23,7 @@ class lzss():
         self.context["ring_buffer"] = bytearray(self.context["ring_buffer_size"] + self.context["max_match_length"] - 1)
         self.context["parent"] = [0x00000000] * (self.context["ring_buffer_size"] + 0x01)
         self.context["rchild"] = [0x00000000] * ((self.context["ring_buffer_size"] * 2) + 0x01) 
-        self.context["lchild"] = [0x00000000] * (self.context["ring_buffer_size"] + 0x01)
+        self.context["lchild"] = [0x00000000] * ((self.context["ring_buffer_size"] * 2) + 0x01)
 
         for ii in range(self.context["ring_buffer_size"] - self.context["max_match_length"]):
             self.context["ring_buffer"][ii] = 0x20
@@ -55,6 +55,8 @@ class lzss():
 
             if looped >= 0xFFFF:
                 raise Exception('Runaway loop')
+
+            
 
             if cmp >= 0:
                 cmp = self.context["rchild"][parent_link]
@@ -104,6 +106,7 @@ class lzss():
                     break
 
         self.context["parent"][parent_index] = parent_link
+
         matched_list[child_index] = child_link
 
     def DeleteNode(self, i):
